@@ -10,10 +10,10 @@
 
 /* flag and macros for debugging */
 int dodebug=1;
-#define DEBUG(x) {if (dodebug) {fprintf(stderr,">");fprintf(stderr,x);fprintf(stderr,"n");}}
-#define DEBUG2(x1,x2)  {if (dodebug) {fprintf(stderr,">");fprintf(stderr,x1,x2);fprintf(stderr,"n");}}
-#define DEBUG4(x1,x2,x3,x4)  {if (dodebug) {fprintf(stderr,">");fprintf(stderr,x1,x2,x3,x4);fprintf(stderr,"n");}}
-#define DEBUG5(x1,x2,x3,x4,x5)  {if (dodebug) {fprintf(stderr,">");fprintf(stderr,x1,x2,x3,x4,x5);fprintf(stderr,"n");}}
+#define DEBUG(x) {if (dodebug) {fprintf(stderr,">");fprintf(stderr,x);fprintf(stderr,"\n");}}
+#define DEBUG2(x1,x2)  {if (dodebug) {fprintf(stderr,">");fprintf(stderr,x1,x2);fprintf(stderr,"\n");}}
+#define DEBUG4(x1,x2,x3,x4)  {if (dodebug) {fprintf(stderr,">");fprintf(stderr,x1,x2,x3,x4);fprintf(stderr,"\n");}}
+#define DEBUG5(x1,x2,x3,x4,x5)  {if (dodebug) {fprintf(stderr,">");fprintf(stderr,x1,x2,x3,x4,x5);fprintf(stderr,"\n");}}
 
 
 
@@ -71,6 +71,10 @@ usb_dev_handle * initNbglinUsb(struct usb_device *dev){
   /* claim the interface */
   ret = usb_set_configuration(udev, dev->config[config].bConfigurationValue);
   DEBUG2("set conf=%d",ret);
+  if (ret!=0){
+     DEBUG("NbglinUsb: seems you dont have rights to access usb");
+    exit(-1);
+  }
   ret = usb_claim_interface(udev,0);
   DEBUG2("claim_stat=%d",ret);
 
@@ -122,8 +126,9 @@ void process_command(char *arg,usb_dev_handle *udev){
     }
   } else {
     /* write */
+command=0;
     sscanf(arg,"%x",&command);
-     
+    DEBUG2("write: %x", command);
     data[0]=command;
     ret =usb_bulk_write(udev, 1, data, 1, 100);
     DEBUG2("%d bytes written", ret);
@@ -141,12 +146,18 @@ int main(int argc,char ** args)
   int startcommands=2;
   int vendor,product;
 
+#ifndef _WINBASE_H
+DEBUG("_WINBASE_H defined, for windows");
+#else
+DEBUG("_WINBASE_H not defined, for linux");
+#endif
+
   /* check that there are at least two arguments */
   if (argc<3){
     printf(
-      "Send and read bytes to the usb device. Syntax: %s vendor:product commands...n"
-      "Commands available:n q for quiet.n r (or rX) read 1 (or X) unique bytes and prints them.n"
-      " X write the byte to the usb.nAll numbers are in hexadecimaln"
+      "Send and read bytes to the usb device. Syntax: %s vendor:product commands...\n"
+      "Commands available:n q for quiet.n r (or rX) read 1 (or X) unique bytes and prints them.\n"
+      " X write the byte to the usb.nAll numbers are in hexadecimal\n"
       "E.g:  1234:1 1 2 3a ra 3b. connect to 0x1234:01 send 1 2 3a, read 10 bytes, send 3b",args[0]);
     exit(1);
   }
